@@ -1,12 +1,12 @@
-//title:Sample Handler
+//title: Not Found Handler
 //author: Ishrat Zahan
 
 const handler = {};
 
-handler.notFoundHandler = (requestProperties, callback) => {
+handler.notFoundHandeler = (requestProperties, callback) => {
     callback(404, {
-        message: 'Not Found',
+        message: 'not found',
     });
 };
 
-module.exports = handler;
+module.exports = handler.notFoundHandeler; // Correctly export the `notFoundHandeler` function
