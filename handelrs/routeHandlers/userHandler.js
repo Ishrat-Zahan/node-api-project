@@ -63,32 +63,31 @@ handler._user.post = (requestProperties, callback) => {
     }
 };
 
-
 handler._user.get = (requestProperties, callback) => {
 
     //check the phone no is valid
     const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
 
-    if(phone){
+    if (phone) {
 
         //look upthe user
-        data.read('users',phone,(err,u) => {
-            
-            const user ={ ... parseJSON(u)};
-            if(!err && user) {
+        data.read('users', phone, (err, u) => {
+
+            const user = { ...parseJSON(u) };
+            if (!err && user) {
 
                 delete user.password;
                 callback(200, user);
 
-            }else{
+            } else {
 
-                callback(404, {error: 'User not found'});
+                callback(404, { error: 'User not found' });
             }
         })
 
 
-    }else{
-        callback(400, {error: 'Missing required field'});
+    } else {
+        callback(400, { error: 'Missing required field' });
         return;
     }
 
@@ -97,9 +96,70 @@ handler._user.get = (requestProperties, callback) => {
 };
 
 handler._user.put = (requestProperties, callback) => {
-    callback(200, {
-        message: 'PUT request was successful',
-    });
+
+    //check the phone no is valid
+    const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
+
+    const firstName = typeof requestProperties.body.firstName === 'string' && requestProperties.body.firstName.trim().length > 0 ? requestProperties.body.firstName : false;
+
+    const lastName = typeof requestProperties.body.lastName === 'string' && requestProperties.body.lastName.trim().length > 0 ? requestProperties.body.lastName : false;
+
+    const password = typeof requestProperties.body.password === 'string' && requestProperties.body.password.trim().length > 0 ? requestProperties.body.password : false;
+
+
+    if (phone) {
+
+
+        if (firstName || lastName || password) {
+
+            //look up the user
+            data.read('users', phone, (err, u) => {
+                const userData =  {...u};
+                if (!err && user) {
+
+                    if (firstName) {
+                        userData.firstNames = firstName
+                    }
+                    if (lastName) {
+                        userData.lastNames = lastName
+                    }
+                    if (password) {
+                        userData.password = hash(password)
+                    }
+
+                    //store to the database
+                    data.update('users', phone, userData, (err, userData) => {
+                        if (err) {
+                            callback(500, { error: 'Could not update user' });
+                        } else {
+                            callback(200, {
+                                message: 'User updated successfully'
+                            });
+                        }
+                    });
+
+                } else {
+                    callback(404, { error: 'User not found' });
+
+                }
+
+            })
+            callback(200, user);
+
+        } else {
+
+            callback(404, { error: 'User not found' });
+        }
+
+
+
+    } else {
+        callback(400, { error: 'Invalid phone number' });
+        return;
+    }
+
+
+
 };
 
 handler._user.delete = (requestProperties, callback) => {
