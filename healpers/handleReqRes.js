@@ -7,7 +7,8 @@ const handler = {};
 const url = require('url');
 const { StringDecoder } = require('string_decoder');
 const routes = require('../routes');
-const { notFoundHandeler } = require('../handelrs/routeHandlers/notFoundHandeler')
+const { notFoundHandeler } = require('../handelrs/routeHandlers/notFoundHandeler');
+const {parseJSON} = require('../healpers/utilities');
 
 
 handler.handleReqRes = (req, res) => {
@@ -46,6 +47,9 @@ handler.handleReqRes = (req, res) => {
     req.on('end', () => {
         realData += decoder.end();
 
+        requestProperties.body = parseJSON(realData);
+
+
         chosenHandler(requestProperties, (statusCode, payload) => {
             statusCode = typeof (statusCode) === 'number' ? statusCode : 500;
             payload = typeof (payload) === 'object' ? payload : {};
@@ -57,7 +61,7 @@ handler.handleReqRes = (req, res) => {
 
         });
 
-        res.end('Hello ishrat');
+        
     });
 
 
