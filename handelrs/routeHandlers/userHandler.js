@@ -2,7 +2,8 @@
 // Author: Ishrat Zahan
 
 const data = require('../../lib/data');
-const { hash } = require('../../healpers/utilities'); 
+const { hash } = require('../../healpers/utilities');
+const { parseJSON } = require('../../healpers/utilities');
 
 
 const handler = {};
@@ -22,10 +23,15 @@ handler._user = {};
 
 // Define the handlers for different HTTP methods
 handler._user.post = (requestProperties, callback) => {
+
     const firstName = typeof requestProperties.body.firstName === 'string' && requestProperties.body.firstName.trim().length > 0 ? requestProperties.body.firstName : false;
+
     const lastName = typeof requestProperties.body.lastName === 'string' && requestProperties.body.lastName.trim().length > 0 ? requestProperties.body.lastName : false;
+
     const phone = typeof requestProperties.body.phone === 'string' && requestProperties.body.phone.trim().length === 11 ? requestProperties.body.phone : false;
+
     const password = typeof requestProperties.body.password === 'string' && requestProperties.body.password.trim().length > 0 ? requestProperties.body.password : false;
+
     const tosAgreement = typeof requestProperties.body.tosAgreement === 'boolean' ? requestProperties.body.tosAgreement : false;
 
     if (firstName && lastName && phone && password && tosAgreement) {
@@ -36,7 +42,7 @@ handler._user.post = (requestProperties, callback) => {
                     firstName,
                     lastName,
                     phone,
-                    password: hash(password), // Hash the password
+                    password: hash(password),
                     tosAgreement,
                 };
 
@@ -58,13 +64,36 @@ handler._user.post = (requestProperties, callback) => {
 };
 
 
-
 handler._user.get = (requestProperties, callback) => {
 
+    //check the phone no is valid
+    const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
 
-    callback(200, {
-        message: 'GET request was successful',
-    });
+    if(phone){
+
+        //look upthe user
+        data.read('users',phone,(err,u) => {
+            
+            const user ={ ... parseJSON(u)};
+            if(!err && user) {
+
+                delete user.password;
+                callback(200, user);
+
+            }else{
+
+                callback(404, {error: 'User not found'});
+            }
+        })
+
+
+    }else{
+        callback(400, {error: 'Missing required field'});
+        return;
+    }
+
+
+
 };
 
 handler._user.put = (requestProperties, callback) => {
