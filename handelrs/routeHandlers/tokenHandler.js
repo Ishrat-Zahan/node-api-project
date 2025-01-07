@@ -73,13 +73,67 @@ handler._token.post = (requestProperties, callback) => {
 
 handler._token.get = (requestProperties, callback) => {
 
+    //check the id no is valid
+    const id = typeof requestProperties.queryStringObject.id === 'string' && requestProperties.queryStringObject.id.trim().length === 20 ? requestProperties.queryStringObject.id : false;
+
+    if (id) {
+
+        //look upthe user
+        data.read('tokens', id, (err, tokenData) => {
+
+            const token = { ...parseJSON(tokenData) };
+            if (!err && token) {
+                callback(200, token)
+
+            } else {
+
+                callback(404, { error: 'token not found' });
+            }
+        })
+
+
+    } else {
+        callback(400, { error: 'Missing required field' });
+        return;
+    }
+
+
 
 };
 
 handler._token.put = (requestProperties, callback) => {
+    const id = typeof requestProperties.body.id === 'string' && requestProperties.body.id.trim().length === 20 ? requestProperties.body.id : false;
+    const extend = typeof requestProperties.body.extend === 'boolean' && requestProperties.body.extend === true ? true : false;
 
+    if (id && extend) {
 
+        //look upthe user
+        data.read('tokens', id, (err, tokenData) => {
 
+            let tokenObject = parseJSON(tokenData);
+
+            if (tokenObject.expires > Date.now()) {
+                tokenObject.expires = Date.now() + 60 * 60 * 1000 *
+
+                    //store the update token
+                    data.update('tokens', id, (err, tokenObject) => {
+                        if (!err) {
+                            callback(200, tokenObject);
+                        } else {
+                            callback(500, { error: 'Could not update token' });
+                        }
+                    })
+
+            } else {
+                callback(404, { error: 'token not found' });
+                return;
+            }
+        })
+
+    } else {
+        callback(400, { error: 'Missing required fields' });
+        return;
+    }
 
 };
 
