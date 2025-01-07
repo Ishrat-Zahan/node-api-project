@@ -28,6 +28,29 @@ utilities.hash = (string) => {
         return false; // Explicitly return false for invalid input
     }
 };
+// create random string
+utilities.createRandomString = (strlength) => {
+
+    let length = strlength
+    length = typeof (strlength) === 'number' && strlength > 0 ? strlength : false;
+
+    if (length) {
+        let possibleCharacters = 'abcdefghijklmnopqrstuvwxyz0123456789';
+        let output = '';
+
+        for (let i = 1; i <= length; i++) {
+            let randomChar = possibleCharacters.charAt(
+                Math.floor(Math.random() * possibleCharacters.length)
+            );
+            output += randomChar;
+        }
+
+        return output;
+
+    } else {
+        return false;
+    }
+};
 
 // Export utilities
 module.exports = utilities;

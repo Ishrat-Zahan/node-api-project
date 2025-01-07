@@ -114,7 +114,7 @@ handler._user.put = (requestProperties, callback) => {
 
             //look up the user
             data.read('users', phone, (err, u) => {
-                const userData =  {...u};
+                const userData = { ...u };
                 if (!err && user) {
 
                     if (firstName) {
@@ -163,9 +163,41 @@ handler._user.put = (requestProperties, callback) => {
 };
 
 handler._user.delete = (requestProperties, callback) => {
-    callback(200, {
-        message: 'DELETE request was successful',
-    });
+
+    //check the phone no is valid
+    const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
+    if (phone) {
+
+        data.read('users', phone, (err, userData) => {
+            if (!err && userData) {
+                data.delete('users', phone, (err) => {
+                    if (!err) {
+                        callback(200, {
+                            message: 'User deleted successfully',
+                        });
+                    } else {
+                        callback(500, {
+                            error: 'Could not delete user',
+                        });
+                    }
+                });
+
+            } else {
+                callback(404, {
+                    error: 'User not found',
+                });
+                return;
+            }
+        })
+
+    } else {
+
+        callback(400, {
+            error: 'There was a problem',
+        });
+
+    }
+
 };
 
 module.exports = handler;
