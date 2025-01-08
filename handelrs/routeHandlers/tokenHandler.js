@@ -70,7 +70,6 @@ handler._token.post = (requestProperties, callback) => {
     }
 };
 
-
 handler._token.get = (requestProperties, callback) => {
 
     //check the id no is valid
@@ -113,22 +112,22 @@ handler._token.put = (requestProperties, callback) => {
             let tokenObject = parseJSON(tokenData);
 
             if (tokenObject.expires > Date.now()) {
-                tokenObject.expires = Date.now() + 60 * 60 * 1000 *
+                tokenObject.expires = Date.now() + 60 * 60 * 1000;
 
-                    //store the update token
-                    data.update('tokens', id, (err, tokenObject) => {
-                        if (!err) {
-                            callback(200, tokenObject);
-                        } else {
-                            callback(500, { error: 'Could not update token' });
-                        }
-                    })
+                //store the update token
+                data.update('tokens', id, tokenObject, (err) => {
+                    if (!err) {
+                        callback(200, tokenObject);
+                    } else {
+                        callback(500, { error: 'Could not update token' });
+                    }
+                });
 
             } else {
                 callback(404, { error: 'token not found' });
                 return;
             }
-        })
+        });
 
     } else {
         callback(400, { error: 'Missing required fields' });
@@ -138,8 +137,51 @@ handler._token.put = (requestProperties, callback) => {
 };
 
 handler._token.delete = (requestProperties, callback) => {
+    // Check if the token ID is valid
+    const id = typeof requestProperties.queryStringObject.id === 'string' && requestProperties.queryStringObject.id.trim().length === 20 ? requestProperties.queryStringObject.id.trim() : false;
+
+    if (id) {
+        data.read('tokens', id, (err, tokenData) => {
+            if (!err && tokenData) {
+                data.delete('tokens', id, (err) => {
+                    if (!err) {
+                        callback(200, {
+                            message: 'Token deleted successfully',
+                        });
+                    } else {
+                        callback(500, {
+                            error: 'Could not delete token',
+                        });
+                    }
+                });
+            } else {
+                callback(404, {
+                    error: 'Token not found',
+                });
+            }
+        });
+    } else {
+        callback(400, {
+            error: 'Invalid token ID',
+        });
+    }
+};
 
 
+handler._token.verify = (id, phone, callback) => {
+    data.read('tokens', id, (err, tokenData) => {
+        if (!err && tokenData) {
+            const token = parseJSON(tokenData);
+            if (token.phone === phone && token.expires > Date.now()) {
+                callback(true);
+            } else {
+                callback(false);
+            }
+        } else {
+            callback(false);
+        }
+    });
 };
 
 module.exports = handler;
+

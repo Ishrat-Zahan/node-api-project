@@ -4,6 +4,8 @@
 const data = require('../../lib/data');
 const { hash } = require('../../healpers/utilities');
 const { parseJSON } = require('../../healpers/utilities');
+const tokenHandler = require('./tokenHandler');
+
 
 
 const handler = {};
@@ -70,27 +72,37 @@ handler._user.get = (requestProperties, callback) => {
 
     if (phone) {
 
-        //look upthe user
-        data.read('users', phone, (err, u) => {
+        //varify token
+        let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false;
 
-            const user = { ...parseJSON(u) };
-            if (!err && user) {
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
 
-                delete user.password;
-                callback(200, user);
+                //look upthe user
+                data.read('users', phone, (err, u) => {
+
+                    const user = { ...parseJSON(u) };
+                    if (!err && user) {
+
+                        delete user.password;
+                        callback(200, user);
+
+                    } else {
+
+                        callback(404, { error: 'User not found' });
+                    }
+                })
 
             } else {
-
-                callback(404, { error: 'User not found' });
+                callback(403, { error: 'Missing or invalid token' })
+                return;
             }
         })
-
 
     } else {
         callback(400, { error: 'Missing required field' });
         return;
     }
-
 
 
 };
