@@ -186,7 +186,6 @@ handler._user.put = (requestProperties, callback) => {
     }
 };
 
-
 handler._user.delete = (requestProperties, callback) => {
 
     //check the phone no is valid
