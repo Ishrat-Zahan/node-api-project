@@ -7,7 +7,6 @@ const { parseJSON } = require('../../healpers/utilities');
 const tokenHandler = require('./tokenHandler');
 
 
-
 const handler = {};
 
 handler.userHandler = (requestProperties, callback) => {
@@ -108,71 +107,85 @@ handler._user.get = (requestProperties, callback) => {
 };
 
 handler._user.put = (requestProperties, callback) => {
+    // Check if the phone number is valid
+    const phone =
+        typeof requestProperties.body.phone === 'string' &&
+            requestProperties.body.phone.trim().length === 11
+            ? requestProperties.body.phone
+            : false;
 
-    //check the phone no is valid
-    const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
+    // Validate other fields
+    const firstName =
+        typeof requestProperties.body.firstName === 'string' &&
+            requestProperties.body.firstName.trim().length > 0
+            ? requestProperties.body.firstName
+            : false;
 
-    const firstName = typeof requestProperties.body.firstName === 'string' && requestProperties.body.firstName.trim().length > 0 ? requestProperties.body.firstName : false;
+    const lastName =
+        typeof requestProperties.body.lastName === 'string' &&
+            requestProperties.body.lastName.trim().length > 0
+            ? requestProperties.body.lastName
+            : false;
 
-    const lastName = typeof requestProperties.body.lastName === 'string' && requestProperties.body.lastName.trim().length > 0 ? requestProperties.body.lastName : false;
-
-    const password = typeof requestProperties.body.password === 'string' && requestProperties.body.password.trim().length > 0 ? requestProperties.body.password : false;
-
+    const password =
+        typeof requestProperties.body.password === 'string' &&
+            requestProperties.body.password.trim().length > 0
+            ? requestProperties.body.password
+            : false;
 
     if (phone) {
-
-
         if (firstName || lastName || password) {
+            // Verify the token
+            const token =
+                typeof requestProperties.headersObject.token === 'string'
+                    ? requestProperties.headersObject.token
+                    : false;
 
-            //look up the user
-            data.read('users', phone, (err, u) => {
-                const userData = { ...u };
-                if (!err && user) {
+            tokenHandler._token.verify(token, phone, (isValidToken) => {
+                if (isValidToken) {
+                    // Look up the user
+                    data.read('users', phone, (err, u) => {
+                        const userData = { ...parseJSON(u) }; // Ensure the user data is parsed
+                        if (!err && userData) {
+                            // Update fields if provided
+                            if (firstName) {
+                                userData.firstName = firstName; // Fix field name
+                            }
+                            if (lastName) {
+                                userData.lastName = lastName; // Fix field name
+                            }
+                            if (password) {
+                                userData.password = hash(password);
+                            }
 
-                    if (firstName) {
-                        userData.firstNames = firstName
-                    }
-                    if (lastName) {
-                        userData.lastNames = lastName
-                    }
-                    if (password) {
-                        userData.password = hash(password)
-                    }
-
-                    //store to the database
-                    data.update('users', phone, userData, (err, userData) => {
-                        if (err) {
-                            callback(500, { error: 'Could not update user' });
-                        } else {
-                            callback(200, {
-                                message: 'User updated successfully'
+                            // Store the updated data back in the database
+                            data.update('users', phone, userData, (err) => {
+                                if (!err) {
+                                    callback(200, {
+                                        message: 'User updated successfully',
+                                    });
+                                } else {
+                                    callback(500, {
+                                        error: 'Could not update user',
+                                    });
+                                }
                             });
+                        } else {
+                            callback(404, { error: 'User not found' });
                         }
                     });
-
                 } else {
-                    callback(404, { error: 'User not found' });
-
+                    callback(403, { error: 'Missing or invalid token' });
                 }
-
-            })
-            callback(200, user);
-
+            });
         } else {
-
-            callback(404, { error: 'User not found' });
+            callback(400, { error: 'Missing fields to update' });
         }
-
-
-
     } else {
         callback(400, { error: 'Invalid phone number' });
-        return;
     }
-
-
-
 };
+
 
 handler._user.delete = (requestProperties, callback) => {
 
@@ -180,27 +193,41 @@ handler._user.delete = (requestProperties, callback) => {
     const phone = typeof requestProperties.queryStringObject.phone === 'string' && requestProperties.queryStringObject.phone.trim().length === 11 ? requestProperties.queryStringObject.phone : false;
     if (phone) {
 
-        data.read('users', phone, (err, userData) => {
-            if (!err && userData) {
-                data.delete('users', phone, (err) => {
-                    if (!err) {
-                        callback(200, {
-                            message: 'User deleted successfully',
+        let token = typeof (requestProperties.headersObject.token) === 'string' ? requestProperties.headersObject.token : false;
+
+        tokenHandler._token.verify(token, phone, (tokenId) => {
+            if (tokenId) {
+
+                //look upthe user
+                data.read('users', phone, (err, userData) => {
+                    if (!err && userData) {
+                        data.delete('users', phone, (err) => {
+                            if (!err) {
+                                callback(200, {
+                                    message: 'User deleted successfully',
+                                });
+                            } else {
+                                callback(500, {
+                                    error: 'Could not delete user',
+                                });
+                            }
                         });
+
                     } else {
-                        callback(500, {
-                            error: 'Could not delete user',
+                        callback(404, {
+                            error: 'User not found',
                         });
+                        return;
                     }
-                });
+                })
+
 
             } else {
-                callback(404, {
-                    error: 'User not found',
-                });
+                callback(403, { error: 'Missing or invalid token' })
                 return;
             }
         })
+
 
     } else {
 
